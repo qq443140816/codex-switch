@@ -1,0 +1,103 @@
+classDiagram
+    class IClientAdapter {
+        <<interface>>
+        +clientType: ClientType
+        +detect(): boolean
+        +getConfigPaths(): string[]
+        +readConfig(): ClientConfig
+        +writeConfig(config: ClientConfig): void
+        +backupConfig(): ConfigBackup
+        +restoreConfig(backupId: string): void
+        +listBackups(): ConfigBackup[]
+    }
+
+    class ClientConfig {
+        +apiBaseUrl: string
+        +apiKey: string
+        +model: string
+        +modelProvider: string
+        +extra: Record~string, unknown~
+    }
+
+    class CodexAdapter {
+        -configTomlPath: string
+        -authJsonPath: string
+        -backupStore: BackupStore
+        +clientType: ClientType.CODEX
+        +detect(): boolean
+        +getConfigPaths(): string[]
+        +readConfig(): ClientConfig
+        +writeConfig(config: ClientConfig): void
+        -readTomlSafely(): Record~string, unknown~
+        -updateTomlField(data: object, path: string[], value: string): void
+    }
+
+    class WorkBuddyAdapter {
+        -modelsJsonPath: string
+        -backupStore: BackupStore
+        +clientType: ClientType.WORKBUDDY
+        +detect(): boolean
+        +getConfigPaths(): string[]
+        +readConfig(): ClientConfig
+        +writeConfig(config: ClientConfig): void
+        -findModelEntry(models: WorkBuddyModel[], id: string): WorkBuddyModel|undefined
+    }
+
+    class WorkBuddyModel {
+        +id: string
+        +name: string
+        +vendor: string
+        +url: string
+        +apiKey: string
+        +isDefault: boolean
+    }
+
+    class ProxyServer {
+        -port: number
+        -status: ProxyStatus
+        -httpServer: Server
+        -activeChannelId: string
+        -router: RequestRouter
+        -channelStore: ChannelStore
+        -logStore: LogStore
+        -converterRegistry: ConverterRegistry
+        -keyVault: KeyVault
+        -streamForwarder: StreamForwarder
+        +start(port: number): Promise~void~
+        +stop(): Promise~void~
+        +restart(): Promise~void~
+        +getStatus(): ProxyStatusInfo
+        +setActiveChannel(channelId: string): void
+        -handleRequest(req: IncomingMessage, res: ServerResponse): void
+        -forwardRequest(url, method, headers, body): Promise~unknown~
+        -handleStreamRequest(req, res, channel, body, targetUrl, forwardHeaders): void
+    }
+
+    class StreamForwarder {
+        +forwardStream(targetUrl: string, method: string, headers: Record~string, string~, body: unknown, clientRes: ServerResponse): Promise~void~
+        -parseSSELine(line: string): SSEChunk|null
+        -isDoneSignal(chunk: SSEChunk): boolean
+    }
+
+    class RequestRouter {
+        -channelStore: ChannelStore
+        +route(path: string, body: unknown): Channel
+        +resolveTargetUrl(channel: Channel, path: string, body?: unknown): string
+        -isResponsesApiPath(path: string): boolean
+    }
+
+    class SSEChunk {
+        +data: string
+        +isDone: boolean
+        +raw: string
+    }
+
+    IClientAdapter <|.. CodexAdapter : implements
+    IClientAdapter <|.. WorkBuddyAdapter : implements
+    CodexAdapter --> ClientConfig : reads/writes
+    WorkBuddyAdapter --> ClientConfig : reads/writes
+    WorkBuddyAdapter --> WorkBuddyModel : reads/writes array
+    ProxyServer --> StreamForwarder : delegates streaming
+    ProxyServer --> RequestRouter : routes requests
+    StreamForwarder --> SSEChunk : parses
+    RequestRouter --> Channel : resolves

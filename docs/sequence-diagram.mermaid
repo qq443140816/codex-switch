@@ -1,0 +1,18 @@
+sequenceDiagram
+    participant IPC as client-handlers
+    participant CA as CodexAdapter
+    participant FS as 文件系统
+    participant Toml as smol-toml
+
+    IPC->>CA: readConfig()
+    CA->>FS: readFileSync(configTomlPath)
+    FS-->>CA: tomlContent
+    CA->>Toml: parseToml(tomlContent)
+    Toml-->>CA: parsed (嵌套对象)
+    CA->>CA: 提取 model_providers.custom.base_url
+    Note over CA: 正确路径：parsed.model_providers?.custom?.base_url
+    CA->>FS: readFileSync(authJsonPath)
+    FS-->>CA: authContent
+    CA->>CA: JSON.parse → 提取 OPENAI_API_KEY
+    Note over CA: 正确键名：authParsed.OPENAI_API_KEY
+    CA-->>IPC: ClientConfig { apiBaseUrl, apiKey, model, modelProvider }

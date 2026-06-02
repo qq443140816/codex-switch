@@ -1,0 +1,24 @@
+appId: com.codex-switch.app
+productName: Codex-Switch
+directories:
+  buildResources: resources
+  output: dist
+files:
+  - out/**/*
+  - "!out/renderer/**/*"
+extraResources:
+  - from: out/renderer
+    to: renderer
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: resources/icon.png
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  deleteAppDataOnUninstall: false
+  shortcutName: Codex-Switch
+  artifactName: "${productName}-${version}-Setup.${ext}"
